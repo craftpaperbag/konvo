@@ -11,6 +11,8 @@ services:
       - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - api
+    networks:
+      - konvo-net
 
   api:
     build:
@@ -18,14 +20,12 @@ services:
       dockerfile: Dockerfile
     container_name: konvo-api
     expose:
-      - "8000"                          # フロントから内部ネットワーク越しに参照
+      - "8000"
     volumes:
       - ./api:/app
-    environment:
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONUNBUFFERED=1
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - konvo-net
 
 networks:
-  default:
-    name: konvo-net
+  konvo-net:
