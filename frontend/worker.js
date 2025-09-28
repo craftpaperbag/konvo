@@ -23,7 +23,7 @@ const waitWhilePaused = async () => {
   }
 };
 
-const process = async ({ image, kernel, normalize, delay }) => {
+const process = async ({ image, kernel, normalize, delay, taskId }) => {
   const { width, height, data } = image;
   const src = new Uint8ClampedArray(data);
   const grayscale = computeGrayscale(src, width, height);
@@ -37,17 +37,17 @@ const process = async ({ image, kernel, normalize, delay }) => {
 
   for (let y = 0; y < height; y += 1) {
     if (cancelled) {
-      postMessage({ type: "cancelled" });
+      postMessage({ type: "cancelled", taskId });
       return;
     }
     for (let x = 0; x < width; x += 1) {
       if (cancelled) {
-        postMessage({ type: "cancelled" });
+        postMessage({ type: "cancelled", taskId });
         return;
       }
       await waitWhilePaused();
       if (cancelled) {
-        postMessage({ type: "cancelled" });
+        postMessage({ type: "cancelled", taskId });
         return;
       }
 
@@ -65,14 +65,14 @@ const process = async ({ image, kernel, normalize, delay }) => {
       const value = clamp(Math.round(acc / divisor), 0, 255);
       const idx = (y * width + x) * 4;
 
-      postMessage({ type: "progress", idx, value, x, y });
+      postMessage({ type: "progress", idx, value, x, y, taskId });
       if (delay > 0) {
         await sleep(delay);
       }
     }
   }
 
-  postMessage({ type: "done" });
+  postMessage({ type: "done", taskId });
 };
 
 self.onmessage = (event) => {
