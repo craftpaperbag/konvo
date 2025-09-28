@@ -2,7 +2,7 @@ const dropzone = document.getElementById("dropzone");
 const fileInput = document.getElementById("file-input");
 const kernelGrid = document.getElementById("kernel-grid");
 const normalizeToggle = document.getElementById("normalize-toggle");
-const speedInput = document.getElementById("speed-input");
+const intervalInput = document.getElementById("interval-input");
 const playBtn = document.getElementById("play-btn");
 const pauseBtn = document.getElementById("pause-btn");
 const resetBtn = document.getElementById("reset-btn");
@@ -40,6 +40,8 @@ let totalPixels = 0;
 let processedPixels = 0;
 let paused = false;
 let running = false;
+let taskCounter = 0;
+let activeTaskId = null;
 
 const updateStatus = (text) => {
   statusText.textContent = text;
@@ -47,12 +49,7 @@ const updateStatus = (text) => {
 
 const resetResultCanvas = () => {
   resultCtx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
-  if (resultImageData) {
-    resultImageData = resultCtx.createImageData(
-      resultCanvas.width,
-      resultCanvas.height,
-    );
-  }
+  resultImageData = null;
 };
 
 const getKernelValues = () =>
@@ -120,7 +117,10 @@ const startConvolution = () => {
   if (!imageData || running) return;
   const kernel = getKernelValues();
   const normalize = normalizeToggle.checked;
-  const delay = Number.parseInt(speedInput.value, 10);
+  const delay = Number.parseInt(intervalInput.value, 10);
+
+  taskCounter += 1;
+  activeTaskId = taskCounter;
 
   worker.postMessage({
     type: "start",
@@ -132,6 +132,7 @@ const startConvolution = () => {
     kernel,
     normalize,
     delay: Number.isNaN(delay) ? 0 : Math.max(0, delay),
+    taskId: activeTaskId,
   });
 
   running = true;
@@ -160,6 +161,7 @@ const pauseConvolution = () => {
 
 const resetConvolution = () => {
   worker.postMessage({ type: "reset" });
+  activeTaskId = null;
   running = false;
   paused = false;
   pauseBtn.textContent = "一時停止";
@@ -175,7 +177,12 @@ const resetConvolution = () => {
 };
 
 worker.onmessage = (event) => {
-  const { type } = event.data;
+  const { type, taskId } = event.data;
+
+  if (activeTaskId === null || taskId !== activeTaskId) {
+    return;
+  }
+
   switch (type) {
     case "progress": {
       if (!imageData) {
