@@ -75,11 +75,11 @@ const process = async ({ image, kernel, normalize, delay }) => {
   postMessage({ type: "done" });
 };
 
-self.onmessage = async (event) => {
+self.onmessage = (event) => {
   const { type } = event.data;
   switch (type) {
     case "start":
-      await process(event.data);
+      process(event.data);
       break;
     case "pause":
       paused = true;
